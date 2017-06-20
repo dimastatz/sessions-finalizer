@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Configuration file is scanned for changes every 60 seconds -->
+<configuration scan="true" scanPeriod="60 seconds">
+    <appender name="FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>/var/log/cage/cage.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- each file should be at most 50MB, keep 30 days worth of history, but at most 2GB -->
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>10</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE" />
+    </appender>
+
+    <appender name="STATS"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>/var/log/cage/metrics.%d{yyyy-MM-dd}.txt</fileNamePattern>
+            <!-- each file should be at most 20MB, keep 10 days worth of history, but at most 2GB -->
+            <maxHistory>10</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="RequestLogs"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>/var/log/cage/audit.%d{yyyy-MM-dd}.txt</fileNamePattern>
+            <!-- each file should be at most 20MB, keep 10 days worth of history, but at most 2GB -->
+            <maxHistory>10</maxHistory>
+            <totalSizeCap>100GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="ASYNC_STATS" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="STATS" />
+    </appender>
+
+    <appender name="RequestLogsAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RequestLogs" />
+    </appender>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.apache.zookeeper" level="INFO" />
+    <logger name="org.apache.curator" level="INFO" />
+    <logger name="ch.qos.logback" level="WARN" />
+
+
+    <logger name="metrics" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_STATS"/>
+    </logger>
+
+    <logger name="RequestAppender" level="INFO" additivity="false">
+        <appender-ref ref="RequestLogsAppender"/>
+    </logger>
+
+    <root level="ERROR">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="ASYNC" />
+    </root>
+</configuration>
