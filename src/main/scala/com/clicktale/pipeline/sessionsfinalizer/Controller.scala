@@ -1,12 +1,14 @@
 package com.clicktale.pipeline.sessionsfinalizer
 
 import scala.util._
+import com.typesafe.scalalogging._
 import com.clicktale.pipeline.sessionsfinalizer.Controller._
 
-class Controller(service: SessionsFinalizerService) {
+class Controller(service: SessionsFinalizerService) extends LazyLogging {
   def runRequeue(): Unit = {
+    logger.debug(s"performing requeue")
     Try(requeue()) match {
-      case Success(x) =>
+      case Success(x) => logger.debug(s"requeue is finished")
       case Failure(x) =>
     }
   }
