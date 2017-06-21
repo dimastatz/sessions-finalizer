@@ -8,11 +8,10 @@
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!-- rollover daily -->
-            <fileNamePattern>/var/log/cage/cage.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <!-- each file should be at most 50MB, keep 30 days worth of history, but at most 2GB -->
-            <maxFileSize>100MB</maxFileSize>
-            <maxHistory>10</maxHistory>
-            <totalSizeCap>2GB</totalSizeCap>
+            <fileNamePattern>/var/log/sessions-finalizer/log.%d{yyyy-MM-dd}.%i.txt</fileNamePattern>
+            <maxFileSize>2GB</maxFileSize>
+            <maxHistory>3</maxHistory>
+            <totalSizeCap>6GB</totalSizeCap>
         </rollingPolicy>
     </appender>
 
@@ -27,9 +26,9 @@
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- rollover daily -->
-            <fileNamePattern>/var/log/cage/metrics.%d{yyyy-MM-dd}.txt</fileNamePattern>
+            <fileNamePattern>/var/log/sessions-finalizer/metrics.%d{yyyy-MM-dd}.txt</fileNamePattern>
             <!-- each file should be at most 20MB, keep 10 days worth of history, but at most 2GB -->
-            <maxHistory>10</maxHistory>
+            <maxHistory>3</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
     </appender>
@@ -41,9 +40,9 @@
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- rollover daily -->
-            <fileNamePattern>/var/log/cage/audit.%d{yyyy-MM-dd}.txt</fileNamePattern>
+            <fileNamePattern>/var/log/sessions-finalizer/audit.%d{yyyy-MM-dd}.txt</fileNamePattern>
             <!-- each file should be at most 20MB, keep 10 days worth of history, but at most 2GB -->
-            <maxHistory>10</maxHistory>
+            <maxHistory>3</maxHistory>
             <totalSizeCap>100GB</totalSizeCap>
         </rollingPolicy>
     </appender>
@@ -75,7 +74,7 @@
         <appender-ref ref="RequestLogsAppender"/>
     </logger>
 
-    <root level="ERROR">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="ASYNC" />
     </root>
