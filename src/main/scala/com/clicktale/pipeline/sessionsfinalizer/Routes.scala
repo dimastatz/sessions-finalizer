@@ -4,10 +4,12 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives._
 
 object Routes {
-  private val health: Route = pathPrefix("health" / IntNumber) { v =>
-    get{
-      extractMethod { m =>
-        complete("running")
+  private val health: Route = {
+    pathPrefix("health" / IntNumber) { v =>
+      get {
+        extractMethod { m =>
+          complete("running")
+        }
       }
     }
   }

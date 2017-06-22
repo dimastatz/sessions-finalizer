@@ -9,7 +9,7 @@ class Controller(service: SessionsFinalizerService) extends LazyLogging {
     logger.debug(s"performing requeue")
     Try(requeue()) match {
       case Success(x) => logger.debug(s"requeue is finished")
-      case Failure(x) =>
+      case Failure(x) => logger.error(s"failed to requeue $x")
     }
   }
 

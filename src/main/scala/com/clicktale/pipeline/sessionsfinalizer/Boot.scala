@@ -2,7 +2,6 @@ package com.clicktale.pipeline.sessionsfinalizer
 
 import akka.actor._
 import akka.stream._
-import java.nio.file._
 import akka.http.scaladsl._
 import com.typesafe.scalalogging._
 
@@ -12,18 +11,17 @@ object Boot extends LazyLogging {
     implicit val system = ActorSystem("cage")
     implicit val materializer = initMaterializer()
 
-    loadLogback()
-    val binding = Http().bindAndHandle(Routes.routingTable, "0.0.0.0", 8080)
+    val config = Configuration.load()
+    logger.debug(s"config is loaded for env ${config.environment}")
+
+    val binding = Http().bindAndHandle(
+      Routes.routingTable, config.address.host, config.address.port)
+    logger.debug(s"services is bind to ${config.address.host} ${config.address.port}")
 
     sys addShutdownHook {
       logger.debug(s"sessions-finalizer service is terminating.")
       binding.flatMap(_.unbind()).onComplete(_ => system.terminate())
     }
-  }
-
-  private def loadLogback() = {
-    if(Files.exists(Paths.get("./logback.xml")))
-      System.setProperty("logback.configurationFile", s"./logback.xml")
   }
 
   private def initMaterializer()(implicit system: ActorSystem) = {

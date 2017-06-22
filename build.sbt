@@ -1,6 +1,6 @@
 name := "sessions-finalizer"
 organization := "com.clicktale.pipeline"
-version := "1.0.2"
+version := "1.0.3"
 scalaVersion := "2.12.2"
 
 libraryDependencies += "ch.qos.logback" %  "logback-classic" % "1.1.7"
