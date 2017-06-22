@@ -4,15 +4,22 @@ import akka.actor._
 import akka.stream._
 import akka.http.scaladsl._
 import com.typesafe.scalalogging._
+import com.clicktale.pipeline.sessionsfinalizer.actors._
 
 object Boot extends LazyLogging {
   def main(args: Array[String]): Unit = {
     import system.dispatcher
-    implicit val system = ActorSystem("cage")
+    implicit val system = ActorSystem("sefer")
     implicit val materializer = initMaterializer()
 
     val config = Configuration.load()
     logger.debug(s"config is loaded for env ${config.environment}")
+
+    val controller = new Controller(null)
+    logger.debug(s"Controller initialized")
+
+    val actorScheduler = system.actorOf(Props(new ActorScheduler(controller)))
+    logger.debug(s"Scheduler initialized")
 
     val binding = Http().bindAndHandle(
       Routes.routingTable, config.address.host, config.address.port)
