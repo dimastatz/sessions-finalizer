@@ -1,13 +1,15 @@
 name := "sessions-finalizer"
 organization := "com.clicktale.pipeline"
-version := "1.0.4"
+version := "1.0.5"
 scalaVersion := "2.12.2"
 
 libraryDependencies += "ch.qos.logback" %  "logback-classic" % "1.1.7"
 libraryDependencies += "com.typesafe.akka" % "akka-actor_2.12" % "2.5.3"
 libraryDependencies += "com.typesafe.akka" % "akka-stream_2.12" % "2.5.3"
 libraryDependencies += "com.typesafe.akka" % "akka-http_2.12" % "10.0.8"
+libraryDependencies += "org.apache.kafka" % "kafka-clients" % "0.10.2.0"
 libraryDependencies += "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.5.0"
+libraryDependencies += "com.newmotion" %% "akka-rabbitmq" % "4.0.0"
 
 // Resolvers for Maven2 repositories
 resolvers ++= Seq(
@@ -21,7 +23,6 @@ resolvers ++= Seq(
 mainClass in Compile := Some("com.clicktale.pipeline.sessionsfinalizer.Boot")
 mainClass in assembly := Some("com.clicktale.pipeline.sessionsfinalizer.Boot")
 mainClass in packageBin := Some("com.clicktale.pipeline.sessionsfinalizer.Boot")
-
 
 Revolver.settings: Seq[sbt.Def.Setting[_]]
 enablePlugins(JavaServerAppPackaging, RpmPlugin, RpmDeployPlugin)
