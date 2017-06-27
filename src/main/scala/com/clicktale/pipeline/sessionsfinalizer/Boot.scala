@@ -6,8 +6,9 @@ import akka.stream._
 import java.nio.file._
 import akka.http.scaladsl._
 import com.typesafe.scalalogging._
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 import com.clicktale.pipeline.sessionsfinalizer.actors._
+import com.clicktale.pipeline.sessionsfinalizer.contracts._
 
 object Boot extends LazyLogging {
   def main(args: Array[String]): Unit = {
@@ -18,14 +19,14 @@ object Boot extends LazyLogging {
     val config = loadConfig()
     logger.debug(s"config is loaded for env ${config.getString("conf.env")}")
 
-    val controller = new Controller(null)
+    val service = SessionsFinalizerService.getDefault
     logger.debug(s"Controller initialized")
 
-    val actorScheduler = system.actorOf(Props(new ActorScheduler(controller)))
+    val actorScheduler = system.actorOf(Props(new ActorScheduler(service)))
     logger.debug(s"Scheduler initialized")
 
     val address = Address(config.getString("conf.host"), config.getInt("conf.port"))
-    val binding = Http().bindAndHandle(Routes.getRoutes, address.host, address.port)
+    val binding = Http().bindAndHandle(RoutingService.getRoutes, address.host, address.port)
     logger.debug(s"services is bind to host: ${address.host}, port: ${address.port}")
 
     sys addShutdownHook {

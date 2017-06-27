@@ -5,8 +5,8 @@ import collection.JavaConverters._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.clients.CommonClientConfigs
-import com.clicktale.pipeline.sessionsfinalizer.Controller._
 import com.clicktale.pipeline.sessionsfinalizer.repositories.KafkaSessionsRepository._
+import com.clicktale.pipeline.sessionsfinalizer.contracts.SessionsFinalizerService.Session
 
 class KafkaSessionsRepository(config: KafkaConfig) {
   private val consumer = createConsumer()
@@ -65,7 +65,7 @@ object KafkaSessionsRepository {
       config.getString("conf.kafka.topics"),
       config.getString("conf.kafka.brokers"),
       config.getString("conf.kafka.groupId"),
-      java.util.UUID.randomUUID().toString(),
+      java.util.UUID.randomUUID().toString,
       config.getInt("conf.kafka.maxpollrecords"),
       config.getBoolean("conf.kafka.autoCommit"),
       config.getString("conf.kafka.offsetReset"),

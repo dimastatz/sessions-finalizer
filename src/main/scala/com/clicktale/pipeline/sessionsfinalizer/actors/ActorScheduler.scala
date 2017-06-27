@@ -4,10 +4,10 @@ import akka.actor._
 import scala.concurrent._
 import com.typesafe.scalalogging._
 import scala.concurrent.duration._
-import com.clicktale.pipeline.sessionsfinalizer._
 import com.clicktale.pipeline.sessionsfinalizer.actors.ActorScheduler._
+import com.clicktale.pipeline.sessionsfinalizer.contracts.SessionsFinalizerService
 
-class ActorScheduler(controller: Controller) extends Actor with LazyLogging{
+class ActorScheduler(finalizer: SessionsFinalizerService) extends Actor with LazyLogging{
   private implicit val executor = ExecutionContext.Implicits.global
   val cancellable: Cancellable = startTimer()
 
@@ -17,7 +17,8 @@ class ActorScheduler(controller: Controller) extends Actor with LazyLogging{
   }
 
   private def startTimer() = {
-    context.system.scheduler.schedule(60 seconds, 60 seconds, self, Tick)
+    val interval = finalizer.getRequeueIntervalMs
+    context.system.scheduler.schedule(interval milliseconds, interval milliseconds, self, Tick)
   }
 }
 
