@@ -1,57 +1,32 @@
 package com.clicktale.pipeline.sessionsfinalizer
 
-import scala.util._
-import akka.actor._
-import akka.stream._
-import java.nio.file._
 import akka.http.scaladsl._
+import com.google.inject.Guice
 import com.typesafe.scalalogging._
-import com.typesafe.config.ConfigFactory
-import com.clicktale.pipeline.sessionsfinalizer.actors._
+import akka.stream.ActorMaterializer
+import akka.actor.{ActorRef, ActorSystem}
+import scala.concurrent.ExecutionContext
+import net.codingwell.scalaguice.InjectorExtensions._
 import com.clicktale.pipeline.sessionsfinalizer.contracts._
 
 object Boot extends LazyLogging {
   def main(args: Array[String]): Unit = {
-    import system.dispatcher
-    implicit val system = ActorSystem("sefer")
-    implicit val materializer = initMaterializer()
+    val injector = Guice.createInjector(new Injector())
+    implicit val system = injector.instance[ActorSystem]
+    implicit val context = injector.instance[ExecutionContext]
+    implicit val materializer = injector.instance[ActorMaterializer]
+    logger.debug("injector created")
 
-    val config = loadConfig()
-    logger.debug(s"config is loaded for env ${config.getString("conf.env")}")
+    val routes = injector.instance[RoutingService]
+    val binding = Http().bindAndHandle(routes.getRoutes, routes.getAddress.host, routes.getAddress.port)
+    logger.debug(s"service is listening to ${routes.getAddress.port}")
 
-    val service = SessionsFinalizerService.getDefault
-    logger.debug(s"Controller initialized")
-
-    val actorScheduler = system.actorOf(Props(new ActorScheduler(service)))
-    logger.debug(s"Scheduler initialized")
-
-    val address = Address(config.getString("conf.host"), config.getInt("conf.port"))
-    val binding = Http().bindAndHandle(RoutingService.getRoutes, address.host, address.port)
-    logger.debug(s"services is bind to host: ${address.host}, port: ${address.port}")
+    val scheduler = injector.instance[ActorRef]
+    logger.debug(s"scheduler (main) actor is created")
 
     sys addShutdownHook {
       logger.debug(s"sessions-finalizer service is terminating.")
       binding.flatMap(_.unbind()).onComplete(_ => system.terminate())
     }
   }
-
-  private def loadConfig() = {
-    val appConf = "app.conf"
-    val logFile = "./logback.xml"
-    val logSettings = "logback.configurationFile"
-
-    Try(Paths.get(logFile)).map(i => System.setProperty(logSettings, logFile))
-    Try(ConfigFactory.load(s"./$appConf")).getOrElse(ConfigFactory.load(appConf))
-  }
-
-  private def initMaterializer()(implicit system: ActorSystem) = {
-    val decider: Supervision.Decider = {
-      case _: Exception => Supervision.Resume
-      case _ => Supervision.Stop
-    }
-    val settings = ActorMaterializerSettings(system)
-    ActorMaterializer(settings.withSupervisionStrategy(decider))
-  }
-
-  case class Address(host: String, port: Int)
 }

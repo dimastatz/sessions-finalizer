@@ -3,6 +3,7 @@ organization := "com.clicktale.pipeline"
 version := "1.0.7"
 scalaVersion := "2.12.2"
 
+libraryDependencies += "net.codingwell" % "scala-guice_2.12" % "4.1.0"
 libraryDependencies += "ch.qos.logback" %  "logback-classic" % "1.1.7"
 libraryDependencies += "com.typesafe.akka" % "akka-actor_2.12" % "2.5.3"
 libraryDependencies += "com.typesafe.akka" % "akka-stream_2.12" % "2.5.3"
