@@ -29,6 +29,5 @@ trait RoutingService extends LazyLogging{
 
 object RoutingService {
   case class NetworkAddress(port: Int, host: String)
-
 }
 

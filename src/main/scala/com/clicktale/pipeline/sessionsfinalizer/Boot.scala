@@ -15,14 +15,15 @@ object Boot extends LazyLogging {
     implicit val system = injector.instance[ActorSystem]
     implicit val context = injector.instance[ExecutionContext]
     implicit val materializer = injector.instance[ActorMaterializer]
-    logger.debug("injector created")
-
-    val routes = injector.instance[RoutingService]
-    val binding = Http().bindAndHandle(routes.getRoutes, routes.getAddress.host, routes.getAddress.port)
-    logger.debug(s"service is listening to ${routes.getAddress.port}")
+    logger.debug("dependency injection mechanism is created")
 
     val scheduler = injector.instance[ActorRef]
-    logger.debug(s"scheduler (main) actor is created")
+    logger.debug(s"scheduler (main) actor is running")
+
+    val routes = injector.instance[RoutingService]
+    val address = (routes.getAddress.host, routes.getAddress.port)
+    val binding = Http().bindAndHandle(routes.getRoutes, address._1, address._2)
+    logger.debug(s"service is listening to network on ${routes.getAddress}")
 
     sys addShutdownHook {
       logger.debug(s"sessions-finalizer service is terminating.")

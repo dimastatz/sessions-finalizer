@@ -41,8 +41,11 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging{
 
   @Provides
   @Singleton def getFinalizer(@Inject ctx: ExecutionContext): SessionsFinalizerService = {
+    logger.debug("creating sessionsfinalizerservice")
+    val requeueIntervalMs = config.getInt("conf.requeueIntervalMs")
+
     new Empty with SessionsFinalizerService {
-      def getRequeueIntervalMs: Int = 1000
+      def getRequeueIntervalMs: Int = requeueIntervalMs
       def enqueue(session: Session): Unit = {}
       def loadExpiredSessionsBatch(): Seq[Session] = List()
       def requeueRequired(session: Session): Boolean = false
