@@ -2,9 +2,9 @@ package com.clicktale.pipeline.sessionsfinalizer.contracts
 
 import scala.util._
 import com.typesafe.scalalogging.LazyLogging
-import com.clicktale.pipeline.sessionsfinalizer.contracts.SessionsFinalizerService._
+import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
 
-trait SessionsFinalizerService extends LazyLogging {
+trait FinalizerService extends LazyLogging {
   def getRequeueIntervalMs: Int
   def enqueue(session: Session): Unit
   def loadExpiredSessionsBatch(): Seq[Session]
@@ -13,24 +13,21 @@ trait SessionsFinalizerService extends LazyLogging {
 
   def runRequeue(session: Session): Unit = {
     logger.debug(s"performing requeue")
-    Try(SessionsFinalizerService.runRequeue(this)) match {
+
+    val requeueResult = Try(() => {
+      val sessions = loadExpiredSessionsBatch()
+      val requeueSet = sessions.filter(requeueRequired)
+      requeueSet.toParArray.foreach(enqueue)
+      publishMetrics(sessions, sessions.diff(requeueSet))
+    })
+
+    requeueResult match {
       case Success(x) => logger.debug(s"requeue is finished")
       case Failure(x) => logger.error(s"failed to requeue $x")
     }
   }
 }
 
-object SessionsFinalizerService {
+object FinalizerService {
   case class Session(subsId: Int, pid: Int, sid: Int)
-
-  def getDefault: SessionsFinalizerService = {
-    null
-  }
-
-  def runRequeue(service: SessionsFinalizerService): Unit ={
-    val sessions = service.loadExpiredSessionsBatch()
-    val requeueSet = sessions.filter(service.requeueRequired)
-    requeueSet.toParArray.foreach(service.enqueue)
-    service.publishMetrics(sessions, sessions.diff(requeueSet))
-  }
 }

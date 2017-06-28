@@ -3,10 +3,13 @@ package com.clicktale.pipeline.sessionsfinalizer.repositories
 import com.typesafe.config.Config
 import com.newmotion.akka.rabbitmq
 import com.newmotion.akka.rabbitmq.Channel
+import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
 import com.clicktale.pipeline.sessionsfinalizer.repositories.RabbitRepository._
 
 class RabbitRepository(config: RabbitConfig) {
   val channel: Channel = createChannel()
+
+  def publish(session: Session): Unit = {}
 
   def publish(message: String): Unit = {
     channel.basicPublish(
@@ -43,11 +46,17 @@ object RabbitRepository {
     RabbitConfig(
       config.getInt("conf.rabbit.port"),
       config.getString("conf.rabbit.host"),
-      config.getBoolean("conf.rabbit.useSSL"),
+      config.getBoolean("conf.rabbit.usessl"),
       config.getString("conf.rabbit.username"),
       config.getString("conf.rabbit.password"),
-      config.getString("conf.rabbit.virtualHost"),
-      config.getString("conf.rabbit.exchangeName")
+      config.getString("conf.rabbit.virtualhost"),
+      config.getString("conf.rabbit.exchange")
     )
+  }
+
+  def create(config: Config): RabbitRepository = new RabbitRepository(createRabbitConfig(config))
+
+  def toMessage(session: Session): String = {
+    session.toString
   }
 }

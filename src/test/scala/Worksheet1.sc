@@ -1,17 +1,17 @@
-
 trait A {
-  def x(): Int = 1
-  def y(): Int
+  def a(): Int
+  def b(): Int = 2
+  def c(): Int
 }
 
 
-class B extends A {
-  def y() = 2
+val x = new {} with A {
+  def a() = 1
+  def c() = 3
 }
 
-
-val b = new B
-b.x()
-b.y()
+x.a()
+x.b()
+x.c()
 
 

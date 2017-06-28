@@ -5,7 +5,6 @@ import com.google.inject.Guice
 import com.typesafe.scalalogging._
 import akka.stream.ActorMaterializer
 import akka.actor.{ActorRef, ActorSystem}
-import scala.concurrent.ExecutionContext
 import net.codingwell.scalaguice.InjectorExtensions._
 import com.clicktale.pipeline.sessionsfinalizer.contracts._
 
@@ -13,7 +12,7 @@ object Boot extends LazyLogging {
   def main(args: Array[String]): Unit = {
     val injector = Guice.createInjector(new Injector())
     implicit val system = injector.instance[ActorSystem]
-    implicit val context = injector.instance[ExecutionContext]
+    implicit val executionContext = system.dispatcher
     implicit val materializer = injector.instance[ActorMaterializer]
     logger.debug("dependency injection mechanism is created")
 

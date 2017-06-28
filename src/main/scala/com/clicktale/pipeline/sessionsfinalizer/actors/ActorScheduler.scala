@@ -5,9 +5,9 @@ import scala.concurrent._
 import com.typesafe.scalalogging._
 import scala.concurrent.duration._
 import com.clicktale.pipeline.sessionsfinalizer.actors.ActorScheduler._
-import com.clicktale.pipeline.sessionsfinalizer.contracts.SessionsFinalizerService
+import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService
 
-class ActorScheduler(finalizer: SessionsFinalizerService) extends Actor with LazyLogging{
+class ActorScheduler(finalizer: FinalizerService) extends Actor with LazyLogging{
   private implicit val executor = ExecutionContext.Implicits.global
   val cancellable: Cancellable = startTimer()
 

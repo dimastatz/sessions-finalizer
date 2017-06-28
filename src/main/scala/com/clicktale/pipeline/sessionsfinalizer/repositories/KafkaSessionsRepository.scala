@@ -6,7 +6,7 @@ import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.clients.CommonClientConfigs
 import com.clicktale.pipeline.sessionsfinalizer.repositories.KafkaSessionsRepository._
-import com.clicktale.pipeline.sessionsfinalizer.contracts.SessionsFinalizerService.Session
+import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService.Session
 
 class KafkaSessionsRepository(config: KafkaConfig) {
   private val consumer = createConsumer()

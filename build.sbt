@@ -1,6 +1,6 @@
 name := "sessions-finalizer"
 organization := "com.clicktale.pipeline"
-version := "1.0.8"
+version := "1.0.9"
 scalaVersion := "2.12.2"
 
 libraryDependencies += "net.codingwell" % "scala-guice_2.12" % "4.1.0"
