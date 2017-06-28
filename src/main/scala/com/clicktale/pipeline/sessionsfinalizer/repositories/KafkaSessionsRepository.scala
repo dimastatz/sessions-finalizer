@@ -60,20 +60,26 @@ object KafkaSessionsRepository {
                          sslPassword: String,
                          sslEncryptionFile: String)
 
+  private def generateClientId() = java.util.UUID.randomUUID().toString
+
   def createKafkaConfig(config: Config): KafkaConfig = {
     KafkaConfig(
       config.getString("conf.kafka.topics"),
       config.getString("conf.kafka.brokers"),
       config.getString("conf.kafka.groupId"),
-      java.util.UUID.randomUUID().toString,
+      generateClientId(),
       config.getInt("conf.kafka.maxpollrecords"),
       config.getBoolean("conf.kafka.autoCommit"),
       config.getString("conf.kafka.offsetReset"),
       config.getString("conf.kafka.keySerializer"),
-        config.getString("conf.kafka.offsetReset"),
-      "",
-      false,
-      "",
-      "")
+      config.getString("conf.kafka.valueSerializer"),
+      config.getString("conf.kafka.compression"),
+      config.getBoolean("conf.kafka.useSSL"),
+      config.getString("conf.kafka.password"),
+      config.getString("conf.kafka.encryptionFile"))
+  }
+
+  def create(config: Config): KafkaSessionsRepository = {
+    new KafkaSessionsRepository(createKafkaConfig(config))
   }
 }

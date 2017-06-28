@@ -1,5 +1,6 @@
 package com.clicktale.pipeline.sessionsfinalizer.repositories
 
+import com.google.gson._
 import com.typesafe.config.Config
 import com.newmotion.akka.rabbitmq
 import com.newmotion.akka.rabbitmq.Channel
@@ -9,14 +10,10 @@ import com.clicktale.pipeline.sessionsfinalizer.repositories.RabbitRepository._
 class RabbitRepository(config: RabbitConfig) {
   val channel: Channel = createChannel()
 
-  def publish(session: Session): Unit = {}
-
-  def publish(message: String): Unit = {
-    channel.basicPublish(
-      config.exchangeName,
-      "",
-      null,
-      message.getBytes)
+  def publish(session: Session): Unit = {
+    val message = RabbitMessage(session.pid, session.subsId, session.sid)
+    val data = serializer.toJson(message).getBytes
+    channel.basicPublish(config.exchangeName, "", null, data)
   }
 
   private def createChannel(): Channel = {
@@ -33,6 +30,14 @@ class RabbitRepository(config: RabbitConfig) {
 }
 
 object RabbitRepository {
+  val serializer: Gson = new GsonBuilder().create()
+
+  case class RabbitMessage(ProjectId: Int,
+                           SubscriberId: Int,
+                           LiveSessionId: Long,
+                           MessageType: String = "New",
+                           MessageCreateDate: String = "",
+                           Version: Int = 1)
 
   case class RabbitConfig(port: Int,
                           host: String,
@@ -54,9 +59,7 @@ object RabbitRepository {
     )
   }
 
-  def create(config: Config): RabbitRepository = new RabbitRepository(createRabbitConfig(config))
-
-  def toMessage(session: Session): String = {
-    session.toString
+  def create(config: Config): RabbitRepository = {
+    new RabbitRepository(createRabbitConfig(config))
   }
 }

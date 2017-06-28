@@ -11,18 +11,17 @@ trait FinalizerService extends LazyLogging {
   def requeueRequired(session: Session): Boolean
   def publishMetrics(sessions: Seq[Session], skipped: Seq[Session]): Unit
 
-  def runRequeue(session: Session): Unit = {
-    logger.debug(s"performing requeue")
-
-    val requeueResult = Try(() => {
+  def runRequeue(): Unit = {
+    val requeueResult = Try({
       val sessions = loadExpiredSessionsBatch()
       val requeueSet = sessions.filter(requeueRequired)
       requeueSet.toParArray.foreach(enqueue)
       publishMetrics(sessions, sessions.diff(requeueSet))
+      (requeueSet.length, sessions.length)
     })
 
     requeueResult match {
-      case Success(x) => logger.debug(s"requeue is finished")
+      case Success(x) => logger.debug(s"requeue performed: $x")
       case Failure(x) => logger.error(s"failed to requeue $x")
     }
   }

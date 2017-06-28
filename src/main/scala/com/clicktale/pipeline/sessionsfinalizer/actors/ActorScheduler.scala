@@ -12,7 +12,7 @@ class ActorScheduler(finalizer: FinalizerService) extends Actor with LazyLogging
   val cancellable: Cancellable = startTimer()
 
   def receive: Receive = {
-    case Tick => logger.debug("Tick")
+    case Tick => finalizer.runRequeue()
     case _ => logger.error("ActorScheduler recieved unknown message")
   }
 

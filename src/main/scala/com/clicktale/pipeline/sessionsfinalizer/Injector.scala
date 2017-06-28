@@ -2,6 +2,7 @@ package com.clicktale.pipeline.sessionsfinalizer
 
 import scala.util._
 import java.nio.file._
+
 import com.google.inject._
 import akka.stream.ActorMaterializer
 import net.codingwell.scalaguice.ScalaModule
@@ -13,7 +14,7 @@ import com.clicktale.pipeline.sessionsfinalizer.Injector._
 import com.clicktale.pipeline.sessionsfinalizer.contracts._
 import com.clicktale.pipeline.sessionsfinalizer.contracts.RoutingService._
 import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
-import com.clicktale.pipeline.sessionsfinalizer.repositories.RabbitRepository
+import com.clicktale.pipeline.sessionsfinalizer.repositories._
 
 class Injector extends AbstractModule with ScalaModule with LazyLogging {
   override def configure(): Unit = logger.debug("injector configured")
@@ -35,27 +36,36 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
   }
 
   @Provides
-  @Singleton def getEngueueHandler(@Inject config: Config): EnqueueHandler = {
+  @Singleton def getEnqueueHandler(@Inject config: Config): EnqueueHandler = {
     val repository = RabbitRepository.create(config)
     repository.publish
   }
 
   @Provides
+  @Singleton def getLoadSessionsHandler(@Inject config: Config): LoadSessionsHandler = {
+    val kafka = KafkaSessionsRepository.create(config)
+    kafka.loadExpiredSessionsBatch
+  }
+
+  @Provides
   @Singleton def getRouter(@Inject config: Config): RoutingService = {
+    // created address and inject
+    val address = NetworkAddress(config.getInt("conf.port"), config.getString("conf.host"))
+
     new {} with RoutingService {
-      override def getAddress =
-        NetworkAddress(config.getInt("conf.port"), config.getString("conf.host"))
+      override def getAddress: NetworkAddress = address
     }
   }
 
   @Provides
   @Singleton def getFinalizer(@Inject config: Config,
-                              @Inject enqueueHandler: EnqueueHandler): FinalizerService = {
+                              @Inject enqueueHandler: EnqueueHandler,
+                              @Inject loadSessionsHandler: LoadSessionsHandler): FinalizerService = {
 
     new {} with FinalizerService {
       def getRequeueIntervalMs: Int = config.getInt("conf.requeueIntervalMs")
       def enqueue(session: Session): Unit = enqueueHandler
-      def loadExpiredSessionsBatch(): Seq[Session] = List()
+      def loadExpiredSessionsBatch(): Seq[Session] = loadSessionsHandler()
       def requeueRequired(session: Session): Boolean = false
       def publishMetrics(sessions: Seq[Session], skipped: Seq[Session]): Unit = {}
     }
@@ -70,4 +80,5 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
 
 object Injector {
   type EnqueueHandler = (Session) => Unit
+  type LoadSessionsHandler = () => Seq[Session]
 }
