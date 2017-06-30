@@ -19,7 +19,7 @@
         <appender-ref ref="FILE" />
     </appender>
 
-    <appender name="STATS"
+    <appender name="METRICS"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <encoder>
             <pattern>%msg%n</pattern>
@@ -33,7 +33,7 @@
         </rollingPolicy>
     </appender>
 
-    <appender name="RequestLogs"
+    <appender name="audits"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <encoder>
             <pattern>%msg%n</pattern>
@@ -47,12 +47,12 @@
         </rollingPolicy>
     </appender>
 
-    <appender name="ASYNC_STATS" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="STATS" />
+    <appender name="ASYNC_METRICS" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="METRICS" />
     </appender>
 
-    <appender name="RequestLogsAppender" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="RequestLogs" />
+    <appender name="auditsAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="audits" />
     </appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -67,11 +67,11 @@
 
 
     <logger name="metrics" level="INFO" additivity="false">
-        <appender-ref ref="ASYNC_STATS"/>
+        <appender-ref ref="ASYNC_METRICS"/>
     </logger>
 
-    <logger name="RequestAppender" level="INFO" additivity="false">
-        <appender-ref ref="RequestLogsAppender"/>
+    <logger name="audits" level="INFO" additivity="false">
+        <appender-ref ref="auditsAppender"/>
     </logger>
 
     <root level="DEBUG">

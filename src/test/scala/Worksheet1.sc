@@ -1,13 +1,13 @@
 trait A {
-  def a(): Int
+  def a(i: Int): Int
   def b(): Int = 2
 
 }
 
 
-val x: A = () => 1
+val x: A = i => i*2
 
-x.a()
+x.a(2)
 x.b()
 
 

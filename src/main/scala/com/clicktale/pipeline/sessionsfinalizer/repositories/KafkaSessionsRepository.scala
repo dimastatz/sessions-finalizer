@@ -1,20 +1,23 @@
 package com.clicktale.pipeline.sessionsfinalizer.repositories
 
+import java.util._
+import scala.util._
+import com.google.gson._
 import com.typesafe.config._
 import collection.JavaConverters._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.clients.CommonClientConfigs
-import com.clicktale.pipeline.sessionsfinalizer.repositories.KafkaSessionsRepository._
 import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService.Session
+import com.clicktale.pipeline.sessionsfinalizer.repositories.KafkaSessionsRepository._
 
 class KafkaSessionsRepository(config: KafkaConfig) {
   private val consumer = createConsumer()
 
-  def loadExpiredSessionsBatch(): Seq[Session] = {
+  def loadExpiredSessionsBatch(): Seq[Try[Session]] = {
     val records = consumer.poll(1000)
     consumer.commitAsync()
-    records.asScala.map(i => Session(0,0,0)).toSeq
+    records.asScala.map(getSession).toSeq
   }
 
   private def createConsumer() = {
@@ -46,6 +49,9 @@ class KafkaSessionsRepository(config: KafkaConfig) {
 }
 
 object KafkaSessionsRepository {
+  val serializer: Gson = new GsonBuilder().create()
+  private def getClientId = UUID.randomUUID().toString
+
   case class KafkaConfig(topics: String,
                          brokers: String,
                          groupId: String,
@@ -60,14 +66,14 @@ object KafkaSessionsRepository {
                          sslPassword: String,
                          sslEncryptionFile: String)
 
-  private def generateClientId() = java.util.UUID.randomUUID().toString
+
 
   def createKafkaConfig(config: Config): KafkaConfig = {
     KafkaConfig(
       config.getString("conf.kafka.topics"),
       config.getString("conf.kafka.brokers"),
       config.getString("conf.kafka.groupId"),
-      generateClientId(),
+      getClientId,
       config.getInt("conf.kafka.maxpollrecords"),
       config.getBoolean("conf.kafka.autoCommit"),
       config.getString("conf.kafka.offsetReset"),
@@ -81,5 +87,12 @@ object KafkaSessionsRepository {
 
   def create(config: Config): KafkaSessionsRepository = {
     new KafkaSessionsRepository(createKafkaConfig(config))
+  }
+
+  def getSession(data: ConsumerRecord[String, String]): Try[Session] = {
+    Try(serializer.fromJson(data.value, classOf[Session])) match {
+      case Success(x) => Success(x)
+      case Failure(x) => Failure(new Exception(data.key + "-" + data.value, x))
+    }
   }
 }
