@@ -1,13 +1,5 @@
-trait A {
-  def a(i: Int): Int
-  def b(): Int = 2
+import java.time.ZonedDateTime
 
-}
-
-
-val x: A = i => i*2
-
-x.a(2)
-x.b()
-
+val z = java.time.ZoneId.of("UTC")
+ZonedDateTime.now(z)
 
