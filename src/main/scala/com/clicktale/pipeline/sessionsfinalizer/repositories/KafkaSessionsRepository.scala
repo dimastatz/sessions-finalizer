@@ -5,6 +5,7 @@ import scala.util._
 import com.google.gson._
 import com.typesafe.config._
 import collection.JavaConverters._
+import org.apache.kafka.clients.producer._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.clients.CommonClientConfigs
@@ -12,12 +13,34 @@ import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService.Sessi
 import com.clicktale.pipeline.sessionsfinalizer.repositories.KafkaSessionsRepository._
 
 class KafkaSessionsRepository(config: KafkaConfig) {
+  private final val topic = config.topics
   private val consumer = createConsumer()
+  private val producer = createProducer()
 
   def loadExpiredSessionsBatch(): Seq[Try[Session]] = {
     val records = consumer.poll(1000)
-    consumer.commitAsync()
+    if(!records.isEmpty) consumer.commitAsync()
     records.asScala.map(getSession).toSeq
+  }
+
+  def publishSessionData(session: Session): Unit = {
+    val data = serializer.toJson(session)
+    val record = new ProducerRecord[String, String](topic, session.sid.toString, data)
+    producer.send(record)
+  }
+
+  private def createProducer(): KafkaProducer[String, String] = {
+    val props = new java.util.Properties()
+    props.put("bootstrap.servers", config.brokers)
+    props.put("client.id", config.clientId)
+    props.put("enable.auto.commit", config.autoCommit.toString)
+    props.put("auto.offset.reset", config.offsetReset)
+    props.put("compression.type", config.compressionType)
+    props.put("key.serializer", config.keySerializer)
+    props.put("value.serializer", config.valueSerializer)
+
+    if(config.securityEnabled) defineSSL(props)
+    new KafkaProducer[String, String](props)
   }
 
   private def createConsumer() = {
@@ -27,14 +50,15 @@ class KafkaSessionsRepository(config: KafkaConfig) {
     props.put("client.id", config.clientId)
     props.put("enable.auto.commit", config.autoCommit.toString)
     props.put("auto.offset.reset", config.offsetReset)
-    props.put("key.deserializer", config.keySerializer)
-    props.put("value.deserializer", config.valueSerializer)
+    props.put("key.deserializer", config.keyDeserializer)
+    props.put("value.deserializer", config.valueDeserializer)
     props.put("compression.type", config.compressionType)
     props.put("max.poll.records", config.maxPollSize.toString)
     
     if(config.securityEnabled) defineSSL(props)
     val consumer = new KafkaConsumer[String, String](props)
-    consumer.subscribe(config.topics.split(",").toList.asJavaCollection)
+    val topicsCollection = config.topics.split(",").toSeq.asJavaCollection
+    consumer.subscribe(topicsCollection)
     consumer
   }
 
@@ -61,6 +85,8 @@ object KafkaSessionsRepository {
                          offsetReset: String,
                          keySerializer: String,
                          valueSerializer: String,
+                         keyDeserializer: String,
+                         valueDeserializer: String,
                          compressionType: String,
                          securityEnabled: Boolean,
                          sslPassword: String,
@@ -79,6 +105,8 @@ object KafkaSessionsRepository {
       config.getString("conf.kafka.offsetReset"),
       config.getString("conf.kafka.keySerializer"),
       config.getString("conf.kafka.valueSerializer"),
+      config.getString("conf.kafka.keyDeserializer"),
+      config.getString("conf.kafka.valueDeserializer"),
       config.getString("conf.kafka.compression"),
       config.getBoolean("conf.kafka.useSSL"),
       config.getString("conf.kafka.password"),

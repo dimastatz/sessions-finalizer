@@ -54,5 +54,8 @@
     <orderEntry type="library" name="SBT: com.google.inject.extensions:guice-multibindings:4.1.0:jar" level="project" />
     <orderEntry type="library" name="SBT: javax.inject:javax.inject:1:jar" level="project" />
     <orderEntry type="library" name="SBT: net.codingwell:scala-guice_2.12:4.1.0:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: org.scala-lang.modules:scala-xml_2.12:1.0.5:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: org.scalactic:scalactic_2.12:3.0.3:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: org.scalatest:scalatest_2.12:3.0.3:jar" level="project" />
   </component>
 </module>
