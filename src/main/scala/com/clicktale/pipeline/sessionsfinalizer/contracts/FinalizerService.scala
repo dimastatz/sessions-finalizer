@@ -1,7 +1,8 @@
 package com.clicktale.pipeline.sessionsfinalizer.contracts
 
 import scala.util._
-import java.time.ZonedDateTime
+import java.time.{LocalDateTime, ZonedDateTime}
+
 import com.typesafe.scalalogging.LazyLogging
 import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
 
@@ -33,7 +34,7 @@ trait FinalizerService extends LazyLogging {
 }
 
 object FinalizerService {
-  case class Session(subsId: Int, pid: Int, sid: Long, createDate: ZonedDateTime)
+  case class Session(subsId: Int, pid: Int, sid: Long, createDate: LocalDateTime)
   case class Metrics(audits: Audits, failed: Boolean, unprocessedCount: Int)
   case class Audits(skipped: Seq[Session], processed: Seq[Session], failed: Seq[Session])
 

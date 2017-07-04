@@ -1,7 +1,8 @@
 package com.clicktale.pipeline.sessionsfinalizer.repositories
 
 import com.google.gson._
-import java.time.ZonedDateTime
+import java.time.{LocalDateTime, ZonedDateTime}
+
 import com.typesafe.config.Config
 import com.newmotion.akka.rabbitmq
 import com.newmotion.akka.rabbitmq.Channel
@@ -35,7 +36,7 @@ object RabbitRepository {
   case class RabbitMessage(ProjectId: Int,
                            SubscriberId: Int,
                            LiveSessionId: Long,
-                           MessageCreateDate: ZonedDateTime,
+                           MessageCreateDate: LocalDateTime,
                            MessageType: Int = 3, // UnclosedSession
                            Version: Int = 1)
 

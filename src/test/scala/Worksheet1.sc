@@ -1,13 +1,19 @@
 import java.time._
 import java.time.format.DateTimeFormatter
 
+import com.google.gson.{Gson, GsonBuilder}
 import scala.util.Random
 
 
-private val rand = new Random(LocalTime.now().getSecond)
-private val epoch = ZonedDateTime.of(2015, 1, 1, 0, 0, 0, 0, ZoneId.of("UTC"))
+val serializer: Gson = new GsonBuilder().create()
 
-val duration = Duration.between(epoch, ZonedDateTime.now(ZoneId.of("UTC")))
-val milliseconds: Long = duration.getSeconds * 1000
-val sid: Long =  (milliseconds << 14) + rand.nextInt(1000)
-sid
+case class A1(i: Int, t: LocalDateTime)
+
+val x = A1(1, LocalDateTime.now(ZoneId.of("UTC")))
+val xString = serializer.toJson(x)
+
+
+
+
+
+val y = serializer.fromJson(xString, classOf[A1])

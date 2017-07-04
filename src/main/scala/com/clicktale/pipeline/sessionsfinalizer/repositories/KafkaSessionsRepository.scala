@@ -1,7 +1,8 @@
 package com.clicktale.pipeline.sessionsfinalizer.repositories
 
-import java.util._
+import java.time._
 import scala.util._
+import java.util.UUID
 import com.google.gson._
 import com.typesafe.config._
 import collection.JavaConverters._
@@ -11,22 +12,55 @@ import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.clients.CommonClientConfigs
 import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService.Session
 import com.clicktale.pipeline.sessionsfinalizer.repositories.KafkaSessionsRepository._
+import org.apache.kafka.common.TopicPartition
+
 
 class KafkaSessionsRepository(config: KafkaConfig) {
-  private final val topic = config.topics
   private val consumer = createConsumer()
   private val producer = createProducer()
 
   def loadExpiredSessionsBatch(): Seq[Try[Session]] = {
     val records = consumer.poll(1000)
-    if(!records.isEmpty) consumer.commitAsync()
-    records.asScala.map(getSession).toSeq
+    val sessions = records.asScala.map(getSession).toSeq
+
+    if(allExpired(sessions.filter(_.isSuccess).map(_.get).toList)) {
+      //consumer.commitAsync()
+      sessions
+    }
+    else List()
   }
 
   def publishSessionData(session: Session): Unit = {
     val data = serializer.toJson(session)
-    val record = new ProducerRecord[String, String](topic, session.sid.toString, data)
+    val record = new ProducerRecord[String, String](config.topics, session.sid.toString, data)
     producer.send(record)
+  }
+
+  def getOffsetData: Seq[Offset] = {
+    val partitions = consumer.assignment()
+    val eof = consumer.endOffsets(partitions).asScala.map(i => (i._1, i._2.toLong))
+    val current = partitions.asScala.map(i => (i, consumer.committed(i).offset()))
+    val list: List[(TopicPartition, Long)] = eof.toList ::: current.toList
+
+    list.groupBy(i => i._1).map(i => createOffset(i._2)).toList
+  }
+
+  def createOffset(list: List[(TopicPartition, Long)]): Offset = {
+    val ordered = list.sortBy(i => i._2)
+    Offset(ordered.head._1.toString, ordered.head._2, ordered.last._2)
+  }
+
+  private def allExpired(x: Seq[Session]): Boolean = {
+    Try(x.count(isExpired) == x.length) match{
+      case Success(i) => i
+      case Failure(i) => true
+    }
+  }
+
+  private def isExpired(x: Session): Boolean = {
+    val now = LocalDateTime.now(ZoneId.of("UTC"))
+    val interval = Duration.between(x.createDate, now)
+    interval.toMinutes > config.expirationMins
   }
 
   private def createProducer(): KafkaProducer[String, String] = {
@@ -76,6 +110,8 @@ object KafkaSessionsRepository {
   val serializer: Gson = new GsonBuilder().create()
   private def getClientId = UUID.randomUUID().toString
 
+  case class Offset(name: String, committed: Long, eof: Long)
+
   case class KafkaConfig(topics: String,
                          brokers: String,
                          groupId: String,
@@ -83,6 +119,7 @@ object KafkaSessionsRepository {
                          maxPollSize: Int,
                          autoCommit: Boolean,
                          offsetReset: String,
+                         expirationMins: Int,
                          keySerializer: String,
                          valueSerializer: String,
                          keyDeserializer: String,
@@ -103,6 +140,7 @@ object KafkaSessionsRepository {
       config.getInt("conf.kafka.maxpollrecords"),
       config.getBoolean("conf.kafka.autoCommit"),
       config.getString("conf.kafka.offsetReset"),
+      config.getInt("conf.kafka.expirationMins"),
       config.getString("conf.kafka.keySerializer"),
       config.getString("conf.kafka.valueSerializer"),
       config.getString("conf.kafka.keyDeserializer"),

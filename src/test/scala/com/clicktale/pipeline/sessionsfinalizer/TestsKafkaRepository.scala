@@ -1,13 +1,10 @@
 package com.clicktale.pipeline.sessionsfinalizer
 
 import java.time._
-
 import org.scalatest._
 import com.typesafe.config._
 import com.clicktale.pipeline.sessionsfinalizer.repositories._
 import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
-
-import scala.util.Try
 
 class TestsKafkaRepository extends WordSpecLike {
   private final val utc: ZoneId = ZoneId.of("UTC")
@@ -17,8 +14,8 @@ class TestsKafkaRepository extends WordSpecLike {
   "Kafka repository" must {
     "Produce item" in {
       if (TestUtils.isDevMachine) {
-        Range(0, 1000).foreach(i =>{
-          val session = Session(i%3, i%3, TestUtils.getSid, ZonedDateTime.now(utc))
+        Range(0, 10000).foreach(i =>{
+          val session = Session(i%3, i%3, TestUtils.getSid, LocalDateTime.now(utc))
           repository.publishSessionData(session)
         })
         Thread.sleep(1000)
@@ -28,16 +25,14 @@ class TestsKafkaRepository extends WordSpecLike {
     }
     "Consume item" in {
       if (TestUtils.isDevMachine) {
-        var batch = repository.loadExpiredSessionsBatch()
-
-        while(batch.isEmpty) {
-          batch = repository.loadExpiredSessionsBatch()
-          Thread.sleep(1000)
+        while(true) {
+          val batch = repository.loadExpiredSessionsBatch()
+          val a = repository.getOffsetData
+          println(batch.length)
+          a.foreach(println)
         }
-
-        assert(batch.nonEmpty)
       }
-      else succeed
+      succeed
     }
   }
 }
