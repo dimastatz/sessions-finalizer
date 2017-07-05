@@ -8,12 +8,11 @@ import com.typesafe.config._
 import collection.JavaConverters._
 import org.apache.kafka.clients.producer._
 import org.apache.kafka.clients.consumer._
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.clients.CommonClientConfigs
-import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService.Session
+import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
 import com.clicktale.pipeline.sessionsfinalizer.repositories.KafkaSessionsRepository._
-import org.apache.kafka.common.TopicPartition
-
 
 class KafkaSessionsRepository(config: KafkaConfig) {
   private val consumer = createConsumer()
@@ -24,7 +23,7 @@ class KafkaSessionsRepository(config: KafkaConfig) {
     val sessions = records.asScala.map(getSession).toSeq
 
     if(allExpired(sessions.filter(_.isSuccess).map(_.get).toList)) {
-      //consumer.commitAsync()
+      if(sessions.exists(_.isSuccess))consumer.commitAsync()
       sessions
     }
     else List()
@@ -59,8 +58,8 @@ class KafkaSessionsRepository(config: KafkaConfig) {
 
   private def isExpired(x: Session): Boolean = {
     val now = LocalDateTime.now(ZoneId.of("UTC"))
-    val interval = Duration.between(x.createDate, now)
-    interval.toMinutes > config.expirationMins
+    val createDate = getSessionCreateDate(x.sid)
+    Duration.between(createDate, now).toMinutes > config.expirationMins
   }
 
   private def createProducer(): KafkaProducer[String, String] = {

@@ -14,8 +14,8 @@ class TestsKafkaRepository extends WordSpecLike {
   "Kafka repository" must {
     "Produce item" in {
       if (TestUtils.isDevMachine) {
-        Range(0, 10000).foreach(i =>{
-          val session = Session(i%3, i%3, TestUtils.getSid, LocalDateTime.now(utc))
+        Range(0, 1000).foreach(i =>{
+          val session = Session(i%3, i%3, TestUtils.getSid)
           repository.publishSessionData(session)
         })
         Thread.sleep(1000)
@@ -30,6 +30,7 @@ class TestsKafkaRepository extends WordSpecLike {
           val a = repository.getOffsetData
           println(batch.length)
           a.foreach(println)
+          println("")
         }
       }
       succeed

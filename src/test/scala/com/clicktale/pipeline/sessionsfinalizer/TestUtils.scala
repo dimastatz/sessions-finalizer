@@ -14,7 +14,8 @@ object TestUtils {
   }
 
   def getSid: Long = {
-    val duration = Duration.between(epoch, ZonedDateTime.now(ZoneId.of("UTC")))
+    val time = ZonedDateTime.now(ZoneId.of("UTC")).minusHours(1)
+    val duration = Duration.between(epoch, time)
     val milliseconds: Long = duration.getSeconds * 1000
     val sid: Long =  (milliseconds << 14) + rand.nextInt(1000)
     sid

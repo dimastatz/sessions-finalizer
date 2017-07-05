@@ -1,7 +1,7 @@
 package com.clicktale.pipeline.sessionsfinalizer.repositories
 
 import com.google.gson._
-import java.time.{LocalDateTime, ZonedDateTime}
+import java.time.LocalDateTime
 
 import com.typesafe.config.Config
 import com.newmotion.akka.rabbitmq
@@ -13,7 +13,8 @@ class RabbitRepository(config: RabbitConfig) {
   val channel: Channel = createChannel()
 
   def publish(session: Session): Unit = {
-    val message = RabbitMessage(session.pid, session.subsId, session.sid, session.createDate)
+    val createDate = getSessionCreateDate(session.sid)
+    val message = RabbitMessage(session.pid, session.subsId, session.sid, createDate)
     channel.basicPublish(config.exchange, "", null, serializer.toJson(message).getBytes)
   }
 
