@@ -8,13 +8,12 @@ import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
 
 class TestsKafkaRepository extends WordSpecLike {
   private final val utc: ZoneId = ZoneId.of("UTC")
-  val config: Config = ConfigFactory.load("app.conf")
-  private val repository = KafkaSessionsRepository.create(config)
+  private val repository = KafkaSessionsRepository.create(TestUtils.config)
 
   "Kafka repository" must {
     "Produce item" in {
       if (TestUtils.isDevMachine) {
-        Range(0, 1000).foreach(i =>{
+        Range(0, 30).foreach(i =>{
           val session = Session(i%3, i%3, TestUtils.getSid)
           repository.publishSessionData(session)
         })
@@ -30,7 +29,6 @@ class TestsKafkaRepository extends WordSpecLike {
           val a = repository.getOffsetData
           println(batch.length)
           a.foreach(println)
-          println("")
         }
       }
       succeed

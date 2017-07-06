@@ -9,8 +9,8 @@ trait FinalizerService extends LazyLogging {
   def getRequeueIntervalMs: Int
   def enqueue(session: Session): Unit
   def publishMetrics(metrics: Metrics): Unit
-  def loadExpiredSessionsBatch(): Seq[Try[Session]]
   def requeueRequired(session: Session): Boolean
+  def loadExpiredSessionsBatch(): Seq[Try[Session]]
 
   def runRequeue(): Unit = {
     val requeueResult = Try({

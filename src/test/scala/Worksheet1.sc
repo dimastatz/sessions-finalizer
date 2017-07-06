@@ -1,19 +1,9 @@
-import java.time._
-import java.time.format.DateTimeFormatter
-
 import com.google.gson.{Gson, GsonBuilder}
-import scala.util.Random
 
+
+case class A(a: Int, b: String)
 
 val serializer: Gson = new GsonBuilder().create()
-
-case class A1(i: Int, t: LocalDateTime)
-
-val x = A1(1, LocalDateTime.now(ZoneId.of("UTC")))
-val xString = serializer.toJson(x)
-
-
-
-
-
-val y = serializer.fromJson(xString, classOf[A1])
+val x = A(1, "a")
+val s = serializer.toJson(x)
+val y: A = serializer.fromJson(s, classOf[A])

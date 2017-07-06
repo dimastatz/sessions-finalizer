@@ -26,7 +26,9 @@ class KafkaSessionsRepository(config: KafkaConfig) {
       if(sessions.exists(_.isSuccess))consumer.commitAsync()
       sessions
     }
-    else List()
+    else {
+      List()
+    }
   }
 
   def publishSessionData(session: Session): Unit = {

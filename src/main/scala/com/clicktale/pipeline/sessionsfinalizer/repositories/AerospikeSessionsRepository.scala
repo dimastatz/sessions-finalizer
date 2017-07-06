@@ -20,6 +20,16 @@ class AerospikeSessionsRepository(config: AerospikeConfig) {
     case Failure(x) => Failure(new Exception(s"read failed: $sid", x))
   }
 
+  def readBatch(sids: Array[Long]): Try[Map[Long, Array[Byte]]] = Try({
+    val policy = client.batchPolicyDefault
+    val keys = sids.map(i => new Key(config.namespace, config.setName, i))
+    val records = client.get(policy, keys)
+    sids.zip(records.map(extractBinValueWithDefault)).toMap
+  })match {
+    case Success(x) => Success(x)
+    case Failure(x) => Failure(new Exception(s"readBatch: ${sids.mkString(",")}", x))
+  }
+
   def write(sid: Long, events: Array[Byte], ttlSec: Int): Try[Unit] = Try({
     val bin = new Bin(config.binName, events)
     val key = new Key(config.namespace, config.setName, sid)
@@ -35,6 +45,18 @@ class AerospikeSessionsRepository(config: AerospikeConfig) {
   }) match {
     case Success(x) => Success(x)
     case Failure(x) => Failure(new Exception(s"delete failed: $sid", x))
+  }
+
+  private def extractBinValueWithDefault(record: Record) = {
+    Try(extractBinValue(record)) match {
+      case Success(x) => x
+      case Failure(x) => Array[Byte]()
+    }
+  }
+
+  private def extractBinValue(record: Record): Array[Byte] = {
+    val data = record.getValue(config.binName)
+    data.asInstanceOf[Array[Byte]]
   }
 
   private def getWritePolicy(timeToLiveSec: Int) = {
