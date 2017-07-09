@@ -7,33 +7,44 @@ import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
 
 trait FinalizerService extends LazyLogging {
   def getRequeueIntervalMs: Int
-  def enqueue(session: Session): Unit
   def publishMetrics(metrics: Metrics): Unit
-  def requeueRequired(session: Session): Boolean
   def loadExpiredSessionsBatch(): Seq[Try[Session]]
+  def enqueue(session: Seq[Session]): Seq[Try[Unit]]
+  def requeueRequired(session: Seq[Session]): Try[Seq[Session]]
 
-  def runRequeue(): Unit = {
-    val requeueResult = Try({
-      val batch = loadExpiredSessionsBatch()
-      val requeueSet = batch.filter(i => i.isSuccess && requeueRequired(i.get))
-      requeueSet.filter(_.isSuccess).map(_.get).toParArray.foreach(enqueue)
-      publishMetrics(createMetrics(batch, requeueSet))
-    })
-
-    requeueResult match {
-      case Success(x) => logger.debug(s"requeue performed: $x")
+  def requeue(sendMetrics: Boolean): Unit = {
+    Try(requeue()) match {
+      case Success(x) => {
+        publishMetrics(x)
+        logger.debug(s"requeue performed $x")
+      }
       case Failure(x) => logger.error(s"failed to requeue $x")
     }
   }
 
-  def logFailedSessions(sessions: Seq[Try[Session]]): Seq[Session] = {
-    logger.error(s"deserialize failed ${sessions.filter(_.isFailure).mkString(",")}")
-    sessions.filter(_.isSuccess).map(_.get)
+  def requeue(): Metrics = {
+    val batchResult = measure(() => loadExpiredSessionsBatch())
+    val sessions = filterFailed(batchResult.data)
+    val requeueRequiredResult = measure(() => requeueRequired(sessions))
+    val enqueueResult = measure(() => enqueue(requeueRequiredResult.data.get))
+    val audit = Audits(requeueRequiredResult.data.get, sessions, List())
+    Metrics(audit, failed = false, 0)
+  }
+
+  def measure[A](call: () => A): Result[A] = {
+    val start = System.nanoTime()
+    Result(call(), (System.nanoTime() - start) / 1000000)
+  }
+
+  def filterFailed[A](data: Seq[Try[A]]): Seq[A] = {
+    logger.warn(s"failed ${data.filter(_.isFailure).mkString(",")}")
+    data.filter(_.isSuccess).map(_.get)
   }
 }
 
 object FinalizerService {
   private val epoch = LocalDateTime.of(2015, 1, 1, 0, 0, 0)
+  case class Result[A](data: A, time: Long)
   case class Session(subsId: Int, pid: Int, sid: Long)
   case class Metrics(audits: Audits, failed: Boolean, unprocessedCount: Int)
   case class Audits(skipped: Seq[Session], processed: Seq[Session], failed: Seq[Session])
@@ -41,10 +52,5 @@ object FinalizerService {
   def getSessionCreateDate(sid: Long): LocalDateTime = {
     val milliseconds = sid >> 14
     epoch.plusSeconds(milliseconds/1000)
-  }
-
-  def createMetrics(batch: Seq[Try[Session]], processed: Seq[Try[Session]]): Metrics = {
-    val audits = Audits(List(),List(),List())
-    Metrics(audits, false, 0)
   }
 }

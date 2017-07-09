@@ -54,7 +54,7 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
   @Provides
   @Singleton def getRequeueRequiredHandler(@Inject config: Config): RequeueRequiredHandler = {
     val aerospike = AerospikeSessionsRepository.create(config)
-    (s:Session) => aerospike.read(s.sid).isSuccess
+    (s:Seq[Session]) => aerospike.exists(s)
   }
   @Provides
   @Singleton def getRouter(@Inject config: Config): RoutingService = {
@@ -71,10 +71,10 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
                               @Inject sendMetricsHandler: SendMetricsHandler): FinalizerService = {
     new {} with FinalizerService {
       def getRequeueIntervalMs: Int = config.getInt("conf.requeueIntervalMs")
-      def enqueue(session: Session): Unit = enqueueHandler(session)
-      def loadExpiredSessionsBatch(): Seq[Try[Session]] = loadSessionsHandler()
-      def requeueRequired(session: Session): Boolean = requeueRequiredHandler(session)
       def publishMetrics(metrics: Metrics): Unit = sendMetricsHandler(metrics)
+      def loadExpiredSessionsBatch(): Seq[Try[Session]] = loadSessionsHandler()
+      def enqueue(sessions: Seq[Session]): Seq[Try[Unit]] = enqueueHandler(sessions)
+      def requeueRequired(session: Seq[Session]): Try[Seq[Session]] = requeueRequiredHandler(session)
     }
   }
   @Provides
@@ -85,8 +85,8 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
 }
 
 object Injector {
-  type EnqueueHandler = Session => Unit
   type SendMetricsHandler = Metrics => Unit
   type LoadSessionsHandler = () => Seq[Try[Session]]
-  type RequeueRequiredHandler = Session => Boolean
+  type EnqueueHandler = Seq[Session] => Seq[Try[Unit]]
+  type RequeueRequiredHandler = Seq[Session] => Try[Seq[Session]]
 }

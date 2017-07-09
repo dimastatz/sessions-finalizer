@@ -5,6 +5,7 @@ import com.typesafe.config._
 import com.aerospike.client._
 import com.aerospike.client.async._
 import com.aerospike.client.policy._
+import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService.Session
 import com.clicktale.pipeline.sessionsfinalizer.repositories.AerospikeSessionsRepository._
 
 class AerospikeSessionsRepository(config: AerospikeConfig) {
@@ -18,6 +19,13 @@ class AerospikeSessionsRepository(config: AerospikeConfig) {
   }) match {
     case Success(x) => Success(x)
     case Failure(x) => Failure(new Exception(s"read failed: $sid", x))
+  }
+
+  def exists(sessions: Seq[Session]): Try[Seq[Session]] = {
+    readBatch(sessions.map(i => i.sid).toArray) match  {
+      case Success(x) => Success(sessions.filter(i => x.contains(i.sid) && x(i.sid).length > 0))
+      case Failure(x) => Failure(x)
+    }
   }
 
   def readBatch(sids: Array[Long]): Try[Map[Long, Array[Byte]]] = Try({
@@ -39,12 +47,12 @@ class AerospikeSessionsRepository(config: AerospikeConfig) {
     case Failure(x) => Failure(new Exception(s"write failed: $sid", x))
   }
 
-  def delete(sid: Long): Try[Unit] = Try({
+  def delete(sid: Long): Try[Boolean] = Try({
     val key = new Key(config.namespace, config.setName, sid)
-    client.delete(client.writePolicyDefault, key)
+     client.delete(client.writePolicyDefault, key)
   }) match {
-    case Success(x) => Success(x)
     case Failure(x) => Failure(new Exception(s"delete failed: $sid", x))
+    case x => x
   }
 
   private def extractBinValueWithDefault(record: Record) = {

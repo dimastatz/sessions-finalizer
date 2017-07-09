@@ -1,8 +1,7 @@
 package com.clicktale.pipeline.sessionsfinalizer.repositories
 
+import scala.util._
 import com.google.gson._
-import java.time.LocalDateTime
-
 import com.typesafe.config.Config
 import com.newmotion.akka.rabbitmq
 import com.newmotion.akka.rabbitmq.Channel
@@ -12,8 +11,16 @@ import com.clicktale.pipeline.sessionsfinalizer.repositories.RabbitRepository._
 class RabbitRepository(config: RabbitConfig) {
   val channel: Channel = createChannel()
 
+  def publish(subsId: Int, pid: Int, sid: Long):  Unit = {
+    publish(Session(subsId, pid, sid))
+  }
+
+  def publish(session: Seq[Session]): Seq[Try[Unit]] = {
+    session.toParArray.map(i => Try(publish(i))).toList
+  }
+
   def publish(session: Session): Unit = {
-    val createDate = getSessionCreateDate(session.sid)
+    val createDate = getSessionCreateDate(session.sid).toString
     val message = RabbitMessage(session.pid, session.subsId, session.sid, createDate)
     channel.basicPublish(config.exchange, "", null, serializer.toJson(message).getBytes)
   }
@@ -37,8 +44,8 @@ object RabbitRepository {
   case class RabbitMessage(ProjectId: Int,
                            SubscriberId: Int,
                            LiveSessionId: Long,
-                           MessageCreateDate: LocalDateTime,
-                           MessageType: Int = 3, // UnclosedSession
+                           CreateDate: String,
+                           Type: String = "UnclosedSession", // 3
                            Version: Int = 1)
 
   case class RabbitConfig(port: Int,

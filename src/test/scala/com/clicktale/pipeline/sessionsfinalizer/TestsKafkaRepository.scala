@@ -2,12 +2,10 @@ package com.clicktale.pipeline.sessionsfinalizer
 
 import java.time._
 import org.scalatest._
-import com.typesafe.config._
 import com.clicktale.pipeline.sessionsfinalizer.repositories._
 import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
 
 class TestsKafkaRepository extends WordSpecLike {
-  private final val utc: ZoneId = ZoneId.of("UTC")
   private val repository = KafkaSessionsRepository.create(TestUtils.config)
 
   "Kafka repository" must {
