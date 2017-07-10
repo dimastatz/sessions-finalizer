@@ -35,8 +35,13 @@ trait FinalizerService extends LazyLogging {
     val enqueueResult = measure(() => enqueue(requeueRequiredResult.data.get))
     logger.info(s"FinalizerService.enqueue ${enqueueResult.data}")
 
-    val audit = Audits(requeueRequiredResult.data.get, sessions, List())
-    Metrics(audit, failed = false, 0)
+    val audits = Audits(
+      requeueRequiredResult.data.get,
+      sessions.diff(requeueRequiredResult.data.get),
+      batchResult.data.filter(_.isSuccess).map(_.get))
+
+    val time = ExecutionTime(batchResult.time, requeueRequiredResult.time, enqueueResult.time)
+    Metrics(audits, failed = false, sessions.length, time)
   }
 
   def measure[A](call: () => A): Result[A] = {
@@ -55,8 +60,9 @@ object FinalizerService {
   private val epoch = LocalDateTime.of(2015, 1, 1, 0, 0, 0)
   case class Result[A](data: A, time: Long)
   case class Session(subsId: Int, pid: Int, sid: Long)
-  case class Metrics(audits: Audits, failed: Boolean, unprocessedCount: Int)
+  case class ExecutionTime(loadBatch: Long, requeueRequired: Long, enqueue: Long)
   case class Audits(skipped: Seq[Session], processed: Seq[Session], failed: Seq[Session])
+  case class Metrics(audits: Audits, failed: Boolean, unprocessedCount: Int, time: ExecutionTime)
 
   def getSessionCreateDate(sid: Long): LocalDateTime = {
     val milliseconds = sid >> 14

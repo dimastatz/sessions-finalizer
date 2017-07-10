@@ -1,7 +1,7 @@
 package com.clicktale.pipeline.sessionsfinalizer
 
-import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService.Session
 import org.scalatest.WordSpecLike
+import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService.Session
 import com.clicktale.pipeline.sessionsfinalizer.repositories.AerospikeSessionsRepository
 
 class TestsAerospikeRepository extends WordSpecLike{
