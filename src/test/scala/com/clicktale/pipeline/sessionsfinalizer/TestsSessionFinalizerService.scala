@@ -11,33 +11,39 @@ class TestsSessionFinalizerService extends WordSpecLike {
   "SessionFinalizer" must {
     "Produce item" in {
       if (!TestUtils.isDevMachine) Succeeded
+      else {
+        val sidsTotalCount = 100
+        val sidsToRequeueCount = 50
+        val rabbit = RabbitRepository.create(TestUtils.config)
+        val kafka = KafkaSessionsRepository.create(TestUtils.config)
+        val aerospike = AerospikeSessionsRepository.create(TestUtils.config)
+        val sessionFinalizer: FinalizerService = new {} with FinalizerService {
+          def getRequeueIntervalMs: Int = TestUtils.config.getInt("conf.requeueIntervalMs")
 
-      val sidsTotalCount = 100
-      val sidsToRequeueCount = 50
-      val rabbit = RabbitRepository.create(TestUtils.config)
-      val kafka = KafkaSessionsRepository.create(TestUtils.config)
-      val aerospike = AerospikeSessionsRepository.create(TestUtils.config)
-      val sessionFinalizer: FinalizerService = new {} with FinalizerService {
-        def getRequeueIntervalMs: Int = TestUtils.config.getInt("conf.requeueIntervalMs")
-        def publishMetrics(metrics: Metrics): Unit = println(metrics)
-        def enqueue(sessions: Seq[Session]): Seq[Try[Unit]] = rabbit.publish(sessions)
-        def loadExpiredSessionsBatch(): Seq[Try[Session]] = kafka.loadExpiredSessionsBatch()
-        def requeueRequired(sessions: Seq[Session]): Try[Seq[Session]] = aerospike.exists(sessions)
-      }
+          def publishMetrics(metrics: Metrics): Unit = println(metrics)
 
-      // create expired sids
-      val sessionsToPublish = Range(0, sidsTotalCount)
-        .map(i => (i % 3) + 1)
-        .map(i => Session(i, i, TestUtils.getSid(31)))
+          def enqueue(sessions: Seq[Session]): Seq[Try[Unit]] = rabbit.publish(sessions)
 
-      sessionsToPublish.foreach(kafka.publishSessionData)
-      // add to aerospike
-      val sessionsToRequeue = sessionsToPublish.take(sidsToRequeueCount)
-      sessionsToRequeue.foreach(i => aerospike.write(i.sid, TestUtils.toString(i).getBytes, 1000))
+          def loadExpiredSessionsBatch(): Seq[Try[Session]] = kafka.loadExpiredSessionsBatch()
 
-      for (i <- 1 to 3) {
-        Thread.sleep(1000)
-        sessionFinalizer.requeue(true)
+          def requeueRequired(sessions: Seq[Session]): Try[Seq[Session]] = aerospike.exists(sessions)
+        }
+
+        // create expired sids
+        val sessionsToPublish = Range(0, sidsTotalCount)
+          .map(i => (i % 3) + 1)
+          .map(i => Session(i, i, TestUtils.getSid(31)))
+
+        sessionsToPublish.foreach(kafka.publishSessionData)
+        // add to aerospike
+        val sessionsToRequeue = sessionsToPublish.take(sidsToRequeueCount)
+        sessionsToRequeue.foreach(i => aerospike.write(i.sid, TestUtils.toString(i).getBytes, 1000))
+
+        for (i <- 1 to 3) {
+          Thread.sleep(1000)
+          sessionFinalizer.requeue(true)
+        }
+        Succeeded
       }
     }
   }
