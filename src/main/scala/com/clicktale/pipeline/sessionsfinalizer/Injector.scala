@@ -2,7 +2,9 @@ package com.clicktale.pipeline.sessionsfinalizer
 
 import scala.util._
 import java.nio.file._
+import scala.concurrent._
 import com.google.inject._
+import java.util.concurrent._
 import akka.stream.ActorMaterializer
 import net.codingwell.scalaguice.ScalaModule
 import com.typesafe.scalalogging.LazyLogging
@@ -23,39 +25,53 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
   override def configure(): Unit = {
     logger.debug("injector configured")
   }
+
   @Provides
   @Singleton def getActorSystem: ActorSystem = {
     ActorSystem("sefer")
   }
+
   @Provides
   @Singleton def getMaterializer(implicit @Inject system: ActorSystem): ActorMaterializer = {
     ActorMaterializer()
   }
+
   @Provides
   @Singleton def getConfig: Config = {
     Try(Paths.get(logFile)).map(i => System.setProperty(logSettings, logFile))
     Try(ConfigFactory.load(s"./$appConf")).getOrElse(ConfigFactory.load(appConf))
   }
+
+  @Provides
+  @Singleton def getIoExecutor(@Inject config: Config): ExecutionContext = {
+    ExecutionContext.fromExecutor(Executors.
+      newFixedThreadPool(config.getInt("conf.ioThreadPoolSize")))
+  }
+
   @Provides
   @Singleton def getEnqueueHandler(@Inject config: Config): EnqueueHandler = {
     val repository = RabbitRepository.create(config)
     repository.publish
   }
+
   @Provides
   @Singleton def getMetricsHandler(@Inject system: ActorSystem): SendMetricsHandler = {
     val auditor = system.actorOf(Props(new ActorAuditor()))
     (metrics: Metrics) => auditor ! metrics
   }
+
   @Provides
   @Singleton def getLoadSessionsHandler(@Inject config: Config): LoadSessionsHandler = {
     val kafka = KafkaSessionsRepository.create(config)
     kafka.loadExpiredSessionsBatch
   }
+
   @Provides
   @Singleton def getRequeueRequiredHandler(@Inject config: Config): RequeueRequiredHandler = {
     val aerospike = AerospikeSessionsRepository.create(config)
-    (s:Seq[Session]) => aerospike.exists(s)
+    (s: Seq[Session]) => aerospike.exists(s)
   }
+
   @Provides
   @Singleton def getRouter(@Inject config: Config): RoutingService = {
     val address = NetworkAddress(config.getInt("conf.port"), config.getString("conf.host"))
@@ -63,6 +79,7 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
       override def getAddress: NetworkAddress = address
     }
   }
+
   @Provides
   @Singleton def getFinalizer(@Inject config: Config,
                               @Inject enqueueHandler: EnqueueHandler,
@@ -77,11 +94,14 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
       def requeueRequired(session: Seq[Session]): Try[Seq[Session]] = requeueRequiredHandler(session)
     }
   }
+
   @Provides
   @Singleton def getScheduler(@Inject system: ActorSystem,
-                              @Inject finalizer: FinalizerService): ActorRef = {
-    system.actorOf(Props(new ActorScheduler(finalizer)))
+                              @Inject finalizer: FinalizerService,
+                              @Inject executionContext: ExecutionContext): ActorRef = {
+    system.actorOf(Props(new ActorScheduler(finalizer, executionContext)))
   }
+
 }
 
 object Injector {

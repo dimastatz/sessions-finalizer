@@ -45,7 +45,7 @@ object RabbitRepository {
                            SubscriberId: Int,
                            LiveSessionId: Long,
                            CreateDate: String,
-                           Type: String = "UnclosedSession", // 3
+                           Type: Int = 3, //"UnclosedSession"
                            Version: Int = 1)
 
   case class RabbitConfig(port: Int,

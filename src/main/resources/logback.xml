@@ -74,8 +74,8 @@
         <appender-ref ref="auditsAppender"/>
     </logger>
 
-    <root level="DEBUG">
-        <!--<appender-ref ref="STDOUT" />-->
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
         <appender-ref ref="ASYNC" />
     </root>
 </configuration>

@@ -1,6 +1,6 @@
 name := "sessions-finalizer"
 organization := "com.clicktale.pipeline"
-version := "1.0.16"
+version := "1.0.17"
 scalaVersion := "2.12.2"
 
 libraryDependencies += "com.google.code.gson" % "gson" % "2.8.1"
@@ -66,6 +66,7 @@ assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
   case x => MergeStrategy.first
 }
+
 
 /*
 mappings in Universal += {

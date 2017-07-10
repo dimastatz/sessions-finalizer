@@ -18,8 +18,9 @@ class KafkaSessionsRepository(config: KafkaConfig) {
   private val consumer = createConsumer()
   private val producer = createProducer()
 
+  // config
   def loadExpiredSessionsBatch(): Seq[Try[Session]] = {
-    val records = consumer.poll(1000)
+    val records = consumer.poll(config.pollTimeout)
     val sessions = records.asScala.map(getSession).toSeq
 
     if(allExpired(sessions.filter(_.isSuccess).map(_.get).toList)) {
@@ -31,6 +32,7 @@ class KafkaSessionsRepository(config: KafkaConfig) {
     }
   }
 
+  // return future
   def publishSessionData(session: Session): Unit = {
     val data = serializer.toJson(session)
     val record = new ProducerRecord[String, String](config.topics, session.sid.toString, data)
@@ -118,6 +120,7 @@ object KafkaSessionsRepository {
                          groupId: String,
                          clientId: String,
                          maxPollSize: Int,
+                         pollTimeout: Int,
                          autoCommit: Boolean,
                          offsetReset: String,
                          expirationMins: Int,
@@ -139,6 +142,7 @@ object KafkaSessionsRepository {
       config.getString("conf.kafka.groupId"),
       getClientId,
       config.getInt("conf.kafka.maxpollrecords"),
+      config.getInt("conf.kafka.maxpolltimeout"),
       config.getBoolean("conf.kafka.autoCommit"),
       config.getString("conf.kafka.offsetReset"),
       config.getInt("conf.kafka.expirationMins"),

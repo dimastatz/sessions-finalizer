@@ -16,17 +16,25 @@ trait FinalizerService extends LazyLogging {
     Try(requeue()) match {
       case Success(x) => {
         publishMetrics(x)
-        logger.debug(s"requeue performed $x")
+        logger.info(s"FinalizerService re-queued: $x")
       }
-      case Failure(x) => logger.error(s"failed to requeue $x")
+      case Failure(x) => {
+        logger.error(s"FinalizerService failed to requeue $x")
+      }
     }
   }
 
   def requeue(): Metrics = {
     val batchResult = measure(() => loadExpiredSessionsBatch())
+    logger.info(s"FinalizerService.loadExpired ${batchResult.data}")
+
     val sessions = filterFailed(batchResult.data)
     val requeueRequiredResult = measure(() => requeueRequired(sessions))
+    logger.info(s"FinalizerService.requeueRequired ${requeueRequiredResult.data}")
+
     val enqueueResult = measure(() => enqueue(requeueRequiredResult.data.get))
+    logger.info(s"FinalizerService.enqueue ${enqueueResult.data}")
+
     val audit = Audits(requeueRequiredResult.data.get, sessions, List())
     Metrics(audit, failed = false, 0)
   }
@@ -37,7 +45,8 @@ trait FinalizerService extends LazyLogging {
   }
 
   def filterFailed[A](data: Seq[Try[A]]): Seq[A] = {
-    logger.warn(s"failed ${data.filter(_.isFailure).mkString(",")}")
+    val failed = data.filter(_.isFailure)
+    if(failed.nonEmpty) logger.warn(s"failed ${failed.mkString(",")}")
     data.filter(_.isSuccess).map(_.get)
   }
 }

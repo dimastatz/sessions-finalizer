@@ -5,6 +5,7 @@ import com.typesafe.scalalogging._
 import akka.http.scaladsl.server.Directives._
 import com.clicktale.pipeline.sessionsfinalizer.contracts.RoutingService._
 
+// kafka, rabbit, as
 trait RoutingService extends LazyLogging{
   def getAddress: NetworkAddress
 
