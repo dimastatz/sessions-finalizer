@@ -1,6 +1,6 @@
 name := "sessions-finalizer"
 organization := "com.clicktale.pipeline"
-version := "1.0.19"
+version := "1.0.20"
 scalaVersion := "2.12.2"
 
 libraryDependencies += "com.google.code.gson" % "gson" % "2.8.1"

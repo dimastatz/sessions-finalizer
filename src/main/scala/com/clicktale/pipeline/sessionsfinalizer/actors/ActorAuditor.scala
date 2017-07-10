@@ -3,6 +3,7 @@ package com.clicktale.pipeline.sessionsfinalizer.actors
 import java.time._
 import scala.util._
 import akka.actor.Actor
+import com.google.gson._
 import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging.LazyLogging
 import com.clicktale.pipeline.sessionsfinalizer.actors.ActorAuditor._
@@ -38,45 +39,60 @@ class ActorAuditor extends Actor with LazyLogging{
   }
 
   private def formatMetrics(key: (Int, Int), summary: List[ProcessingSummary]) = {
-    val total = summary.length
-    val failed = summary.count(x => x.state == failedState)
-    val skipped = summary.count(x => x.state == skippedState)
-    val processed = summary.count(x => x.state == processedState)
-
-    metricsLog.info(s"subsid:${key._1} pid:${key._2} " +
-      s"timestamp:${LocalDateTime.now(ZoneId.of("UTC"))} " +
-      s"total:$total failed:$failed skipped:$skipped processed:$processed")
+    metricsLog.info(serializer.toJson(MetricsFormat(
+      key._1,
+      key._2,
+      summary.length,
+      summary.count(x => x.state == processedState),
+      summary.count(x => x.state == skippedState),
+      summary.count(x => x.state == failedState))))
   }
 
   private def formatOverallMetrics(metrics: Metrics) = {
-    metricsLog.info(s"subsid:0 pid:0 loadBatchTime:${metrics.time.loadBatch} " +
-      s"timestamp:${LocalDateTime.now(ZoneId.of("UTC"))} " +
-      s"requeueRequiredTime:${metrics.time.requeueRequired} enqueueTime:${metrics.time.enqueue}")
+    val format = OverallMetricsFormat(
+      metrics.time.enqueue,
+      metrics.time.loadBatch,
+      metrics.time.enqueue)
+
+    metricsLog.info(serializer.toJson(format))
   }
 
-  private def formatAudit(audit: ProcessingSummary) = {
-    auditsLog.info(s"subsid:${audit.subsId} pid:${audit.pid} timestamp:${audit.timeStamp} data:${audit.state}")
-  }
+  private def formatAudit(audit: ProcessingSummary) = auditsLog.info(serializer.toJson(audit))
 }
 
 object ActorAuditor {
   final val failedState = "failed"
   final val skippedState = "skipped"
   final val processedState = "processed"
+  val serializer: Gson = new GsonBuilder().create()
 
   case class ProcessingSummary(pid: Int,
                                sid: Long,
                                subsId: Int,
                                state: String,
-                               timeStamp: LocalDateTime)
+                               timeStamp: String)
+
+  case class OverallMetricsFormat(enqueueTime: Long,
+                                  loadBatchTime: Long,
+                                  requeueRequiredTime: Long,
+                                  pid: Int = 0,
+                                  subsId: Int = 0,
+                                  timeStamp: String = LocalDateTime.now(ZoneId.of("UTC")).toString)
+
+  case class MetricsFormat(subsId: Long,
+                           pid: Long,
+                           total: Int,
+                           processed: Int,
+                           skipped: Int,
+                           failed: Int,
+                           timeStamp: String = LocalDateTime.now(ZoneId.of("UTC")).toString)
 
   def toSummaryList(x: Seq[Session], state: String): List[ProcessingSummary] = {
     x.map(i => toSummary(i, state)).toList
   }
 
   def toSummary(x: Session, state: String): ProcessingSummary = {
-    ProcessingSummary(x.pid, x.sid, x.subsId, state, LocalDateTime.now(ZoneId.of("UTC")))
+    ProcessingSummary(x.pid, x.sid, x.subsId, state, LocalDateTime.now(ZoneId.of("UTC")).toString)
   }
-
 }
 

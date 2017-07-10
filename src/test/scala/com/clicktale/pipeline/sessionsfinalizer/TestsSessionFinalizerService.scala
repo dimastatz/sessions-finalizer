@@ -1,6 +1,5 @@
 package com.clicktale.pipeline.sessionsfinalizer
 
-
 import scala.util._
 import org.scalatest._
 import com.clicktale.pipeline.sessionsfinalizer.repositories._
