@@ -1,5 +1,6 @@
 package com.clicktale.pipeline.sessionsfinalizer
 
+import java.io._
 import scala.util._
 import java.nio.file._
 import scala.concurrent._
@@ -19,11 +20,11 @@ import com.clicktale.pipeline.sessionsfinalizer.contracts.FinalizerService._
 
 class Injector extends AbstractModule with ScalaModule with LazyLogging {
   private final val appConf = "app.conf"
-  private final val logFile = "./logback.xml"
-  private final val logSettings = "logback.configurationFile"
 
   override def configure(): Unit = {
-    logger.debug("injector configured")
+    val logFile = new File("./logback.xml")
+    if (logFile.exists) System.setProperty("logback.configurationFile", logFile.getCanonicalPath)
+    logger.info(s"logback loaded: ${logFile.getCanonicalPath} ${logFile.exists}")
   }
 
   @Provides
@@ -38,8 +39,9 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
 
   @Provides
   @Singleton def getConfig: Config = {
-    Try(Paths.get(logFile)).map(i => System.setProperty(logSettings, logFile))
-    Try(ConfigFactory.load(s"./$appConf")).getOrElse(ConfigFactory.load(appConf))
+    val logFile = new File("./app.conf")
+    logger.info(s"config loaded: ${logFile.getCanonicalPath} ${logFile.exists}")
+    if (logFile.exists) ConfigFactory.load(logFile.getCanonicalPath) else ConfigFactory.load("app.conf")
   }
 
   @Provides
