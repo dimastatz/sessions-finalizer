@@ -41,7 +41,7 @@ class Injector extends AbstractModule with ScalaModule with LazyLogging {
   @Singleton def getConfig: Config = {
     val logFile = new File("./app.conf")
     logger.info(s"config loaded: ${logFile.getCanonicalPath} ${logFile.exists}")
-    if (logFile.exists) ConfigFactory.load(logFile.getCanonicalPath) else ConfigFactory.load("app.conf")
+    if (logFile.exists) ConfigFactory.parseFile(logFile) else ConfigFactory.load("app.conf")
   }
 
   @Provides

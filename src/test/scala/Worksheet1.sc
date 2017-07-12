@@ -1,3 +1,4 @@
-import java.time.ZonedDateTime
+import com.typesafe.config.ConfigFactory
 
-ZonedDateTime.now().toString
+val a = ConfigFactory.load("C:\\Git\\Pipeline\\sessions-finalizer\\app.conf")
+a.getString("conf.host")
